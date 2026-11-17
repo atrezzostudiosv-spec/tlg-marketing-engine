@@ -1,8 +1,8 @@
+import { parseFact } from "../domain/facts.ts";
 // Trusted server only. No service credential may be sent to a browser.
 type Env = { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; SUPABASE_PUBLISHABLE_KEY: string };
 type Fetcher = typeof fetch;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const statuses = new Set(["ACTIVE","PENDING","SOLD","LEASED","WITHDRAWN","EXCLUDED"]);
 const json = (value: unknown,status=200) => new Response(JSON.stringify(value),{
  status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}
 });
@@ -30,8 +30,7 @@ export async function confirmPropertyFact(request: Request, env: Env, send: Fetc
  const {workspaceId,propertyId,sourceId,expectedRevision,key,value}=body;
  if(![workspaceId,propertyId,sourceId].every(x=>typeof x==="string" && uuid.test(x)) ||
   typeof expectedRevision!=="number" || !Number.isInteger(expectedRevision) || expectedRevision<1 || expectedRevision>2147483647 ||
-  !(key==="status" && typeof value==="string" && statuses.has(value) ||
-    key==="price" && typeof value==="number" && Number.isFinite(value) && value>0 && value<=100000000000))
+  (typeof key!=="string" || parseFact(key,value)===null))
   return json({error:"INVALID_INPUT"},400);
  try {
   const identity=await send(base+"/auth/v1/user",{
@@ -44,7 +43,7 @@ export async function confirmPropertyFact(request: Request, env: Env, send: Fetc
    method:"POST",headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,
     authorization:"Bearer "+env.SUPABASE_SERVICE_ROLE_KEY,"Content-Type":"application/json"},
    body:JSON.stringify({p_actor:user.id,p_workspace:workspaceId,p_property:propertyId,
-    p_source:sourceId,p_expected_revision:expectedRevision,p_key:key,p_value:value}),
+    p_source:sourceId,p_expected_revision:expectedRevision,p_key:key,p_value:parseFact(key as string,value)}),
    redirect:"error"
   });
   if(!result.ok) {
