@@ -82,3 +82,19 @@ test("fourteen-day planner preserves existing entries and adds drafts only",asyn
  await page.getByRole("button",{name:"Generar calendario"}).click();
  await expect(page.locator(".planner-summary span").first()).toHaveText("0 propuestas nuevas");
 });
+
+test("content preview produces differentiated evidence-bound drafts without export",async({page})=>{
+ await page.goto("/");
+ await page.getByRole("button",{name:"Explorar demostración"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Excepciones",exact:true}).click();
+ await page.locator(".post-row").first().click();
+ const dialog=page.getByRole("dialog",{name:"Detalle de publicación"});
+ await dialog.getByRole("button",{name:"Preparar copies"}).click();
+ await expect(dialog.getByText("Borradores preparados · No autorizados para publicar.",{exact:false})).toBeVisible();
+ await expect(dialog.getByRole("heading",{name:"Facebook copy"})).toBeVisible();
+ await expect(dialog.getByRole("heading",{name:"Instagram copy"})).toBeVisible();
+ await expect(dialog.locator(".draft-variant").first()).toContainText("4 bedrooms");
+ await expect(dialog.locator(".draft-variant").first()).toContainText("2,400 sq. ft.");
+ await expect(dialog.getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
+ await page.screenshot({path:"test-results/previews/08-content-intelligence.png",fullPage:true});
+});

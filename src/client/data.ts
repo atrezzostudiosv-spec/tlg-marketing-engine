@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { EditorialState, WorkflowState, PropertyStatus, Format } from "../domain/contracts.ts";
 
 export type Listing = {id:string;address:string;locality:string;status:PropertyStatus;priority:number;transaction_type:"SALE"|"LEASE";revision:number};
-export type CalendarPost = {id:string;property_id:string;planned_at:string;format:Format;editorial_state:EditorialState;workflow_state:WorkflowState;property_revision:number;angle?:string;goal?:string;eventId?:string};
+export type CalendarPost = {id:string;property_id:string;planned_at:string;format:Format;editorial_state:EditorialState;workflow_state:WorkflowState;property_revision:number;angle?:string;goal?:string;eventId?:string;factIds?:string[];assetIds?:string[]};
 export type Alert = {id:string;post_id:string;kind:string;created_at:string};
 export type Workspace = {id:string;name:string};
 export type Snapshot = {properties:Listing[];posts:CalendarPost[];alerts:Alert[]};
@@ -70,4 +70,22 @@ export async function loadPlanningInputs(workspace:string):Promise<Pick<import("
 
 export async function saveEditorialPlan(workspaceId:string,batchId:string,result:import("../domain/planner.ts").PlanResult,perWeek:number){
  return masterMutation<{created:number;postIds:string[]}>("planner",{workspaceId,batchId,start:result.start,perWeek,items:result.items});
+}
+
+export async function loadContentInput(workspace:string,postId:string):Promise<import("../domain/content.ts").ContentInput>{
+ if(!client)throw Error("Sin conexión");
+ const postResult=await client.from("posts").select("id,property_id,property_revision,planned_at,format,workflow_state,editorial_state,strategy_id,event_id").eq("workspace_id",workspace).eq("id",postId).single();
+ if(postResult.error||!postResult.data)throw Error("No se pudo consultar la publicación.");
+ const post=postResult.data;
+ if(!post.strategy_id)throw Error("La publicación no tiene una estrategia registrada.");
+ const [property,strategy,refs,media,input]=await Promise.all([
+  client.from("properties").select("id,address,locality,status,revision,transaction_type").eq("workspace_id",workspace).eq("id",post.property_id).single(),
+  client.from("strategies").select("id,property_id,angle,revision").eq("workspace_id",workspace).eq("id",post.strategy_id).eq("property_id",post.property_id).single(),
+  client.from("strategy_facts").select("fact_id").eq("workspace_id",workspace).eq("property_id",post.property_id).eq("strategy_id",post.strategy_id).limit(1000),
+  client.from("post_assets").select("asset_id,ordinal").eq("workspace_id",workspace).eq("post_id",post.id).eq("property_id",post.property_id).order("ordinal").limit(1000),
+  loadPlanningInputs(workspace)
+ ]);
+ if(property.error||strategy.error||refs.error||media.error||!property.data||!strategy.data||!refs.data||!media.data||refs.data.length>=1000||media.data.length>=1000||strategy.data.revision!==post.property_revision)throw Error("La estrategia o la evidencia no están completas.");
+ // Preview only. These reads are not an atomic export authorization.
+ return {...input,property:property.data,post:{...post,angle:strategy.data.angle,eventId:post.event_id??undefined},factIds:refs.data.map(x=>x.fact_id),assetIds:media.data.map(x=>x.asset_id),now:Date.now()};
 }

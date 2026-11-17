@@ -8,7 +8,7 @@ export type SaveOutcome={revision:number;changed:boolean;pendingInvalidated:numb
 export const demoSource={id:"demo-source",reference:"Fuente ficticia de prueba",authorization_status:"APPROVED",obtained_at:"2026-01-01T00:00:00Z"} as const;
 export function demoMaster(property:Listing):MasterData{
  const now=new Date().toISOString();
- return {facts:[{id:"demo-status-"+property.id,key:"status",typed_value:property.status,unit:null,source_id:demoSource.id,verified_at:now,expires_at:null,verification_status:"CONFIRMED"}],sources:[demoSource],canEdit:true};
+ return {facts:[{id:"demo-status-"+property.id,key:"status",typed_value:property.status,unit:null,source_id:demoSource.id,verified_at:now,expires_at:null,verification_status:"CONFIRMED"},...(property.id==="demo-a"?[{id:"demo-bedrooms-demo-a",key:"bedrooms",typed_value:4,unit:null,source_id:demoSource.id,verified_at:now,expires_at:null,verification_status:"CONFIRMED" as const},{id:"demo-sqft-demo-a",key:"living_sqft",typed_value:2400,unit:"sqft",source_id:demoSource.id,verified_at:now,expires_at:null,verification_status:"CONFIRMED" as const}]:[])],sources:[demoSource],canEdit:true};
 }
 function valid(f:MasterFact,master:MasterData,p:Listing){
  return master.sources.some(s=>s.id===f.source_id&&s.authorization_status==="APPROVED")&&isFactCurrent({id:f.id,propertyId:p.id,key:f.key,value:f.typed_value,sourceId:f.source_id,verifiedAt:f.verified_at,expiresAt:f.expires_at,status:f.verification_status},Date.now());
