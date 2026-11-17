@@ -15,7 +15,7 @@ function valid(f:MasterFact,master:MasterData,p:Listing){
 }
 const statusLabels:Record<string,string>={ACTIVE:"Activa",PENDING:"Pendiente",SOLD:"Vendida",LEASED:"Alquilada",WITHDRAWN:"Retirada",EXCLUDED:"Excluida"};
 function factText(f:MasterFact){return f.key==="status"?statusLabels[String(f.typed_value)]??String(f.typed_value):typeof f.typed_value==="number"?f.typed_value.toLocaleString("en-US")+(f.unit?" "+f.unit:""):String(f.typed_value)}
-export function PropertyMaster({property,workspace,demo,onClose,onUpdated,local,onLocalSave}:{property:Listing;workspace:string;demo:boolean;onClose:()=>void;onUpdated:()=>void;local?:MasterData;onLocalSave:(key:string,value:string|number,sourceId:string)=>SaveOutcome}){
+export function PropertyMaster({property,workspace,demo,onClose,onUpdated,local,onLocalSave}:{property:Listing;workspace:string;demo:boolean;onClose:()=>void;onUpdated:(outcome:SaveOutcome)=>void;local?:MasterData;onLocalSave:(key:string,value:string|number,sourceId:string)=>SaveOutcome}){
  const [master,setMaster]=useState<MasterData|null>(demo?local??demoMaster(property):null),[loading,setLoading]=useState(!demo),[error,setError]=useState(""),[message,setMessage]=useState(""),[key,setKey]=useState<string>("price"),[raw,setRaw]=useState(""),[source,setSource]=useState(""),[reference,setReference]=useState(""),[attested,setAttested]=useState(false),[confirmed,setConfirmed]=useState(false),[busy,setBusy]=useState(false),[refresh,setRefresh]=useState(0),[stale,setStale]=useState(false);
  useEffect(()=>{if(demo){setMaster(local??demoMaster(property));return;}let alive=true;setLoading(true);setMaster(null);setError("");loadMaster(workspace,property.id).then(m=>{if(alive){setMaster(m);setSource(s=>m.sources.some(x=>x.id===s)?s:m.sources.find(x=>x.authorization_status==="APPROVED")?.id??"");}}).catch(e=>{if(alive)setError(e.message)}).finally(()=>{if(alive)setLoading(false)});return()=>{alive=false};},[workspace,property.id,demo,local,refresh]);
  const field=fields.find(f=>f.key===key)!;
@@ -30,7 +30,7 @@ export function PropertyMaster({property,workspace,demo,onClose,onUpdated,local,
  setBusy(true);
  try{const r=demo?onLocalSave(key,value,sourceId):await masterMutation<SaveOutcome>("property-fact",{workspaceId:workspace,propertyId:property.id,sourceId,expectedRevision:property.revision,key,value});
  setConfirmed(false);setMessage((demo?"Simulación: ":"")+"Dato confirmado. "+r.pendingInvalidated+" pendiente(s) afectada(s); "+r.externalReview+" programación(es) externa(s) requieren revisión.");
- if(!demo){setStale(true);onUpdated();} 
+ if(!demo){setStale(true);onUpdated(r);} 
  }catch(e){setError((e as Error).message);if(!demo)setStale(true);}finally{setBusy(false);}}
  return <div className="overlay" onClick={()=>{if(!busy)onClose()}}><section className="drawer master-drawer" role="dialog" aria-modal="true" aria-label="Ficha maestra" onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape"&&!busy)onClose()}}>
  <button autoFocus className="close" aria-label="Cerrar ficha" onClick={onClose} disabled={busy}>×</button><p className="eyebrow">PROPERTY INTELLIGENCE / FICHA MAESTRA</p><h2>{property.address}</h2><p className="muted">{property.locality} · {property.transaction_type==="LEASE"?"Alquiler":"Venta"} · Revisión {property.revision}</p>

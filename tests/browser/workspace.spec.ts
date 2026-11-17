@@ -46,3 +46,24 @@ test("mobile layout does not overflow horizontally",async({page})=>{
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
  }
 });
+
+test("master fact confirmation updates demo and blocks old posts",async({page})=>{
+ await page.goto("/");
+ await page.getByRole("button",{name:"Explorar demostración"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Propiedades",exact:true}).click();
+ await page.locator(".property").filter({has:page.getByRole("heading",{name:"Residencia A"})}).getByRole("button",{name:"Abrir ficha"}).click();
+ const dialog=page.getByRole("dialog",{name:"Ficha maestra"});
+ await expect(dialog.getByRole("button",{name:"Confirmar dato"})).toBeDisabled();
+ await dialog.getByLabel("Valor",{exact:true}).fill("123456");
+ await dialog.getByLabel("Confirmo que el dato coincide",{exact:false}).check();
+ await dialog.getByRole("button",{name:"Confirmar dato"}).click();
+ await expect(dialog.getByRole("status")).toContainText("1 pendiente(s) afectada(s); 1 programación(es)");
+ await expect(dialog.getByText("123,456 USD",{exact:true})).toBeVisible();
+ await expect(dialog.getByText("Revisión 3",{exact:false})).toBeVisible();
+ await page.screenshot({path:"test-results/previews/06-ficha-maestra.png",fullPage:true});
+ await dialog.getByRole("button",{name:"Cerrar ficha"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Excepciones",exact:true}).click();
+ await expect(page.getByText("2 alerta(s) de programación externa.",{exact:false})).toBeVisible();
+ await page.locator(".post-row").first().click();
+ await expect(page.getByRole("dialog").getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
+});

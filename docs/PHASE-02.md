@@ -22,3 +22,7 @@
 4. Confirmar repositorio privado y desplegar aplicación protegida antes de cargar datos reales.
 
 No hay conexión real a Supabase ni entorno privado desplegado. El repositorio sigue público. La fase continúa abierta.
+
+## Incremento de ficha maestra
+
+Se añadió creación de fichas pendientes, registro de fuentes por propiedad mediante atestación explícita del operador y confirmación tipada de nueve campos: estado, precio, habitaciones, baños, superficie, terreno, descripción, enlace y disponibilidad. La ficha presenta datos registrados, vigencia y fuente. La confirmación de un dato cambia la revisión e invalida publicaciones dependientes mediante la misma RPC transaccional; las programaciones de Meta generan alertas, no modificaciones externas. La demo simula cambios en memoria sin persistencia. No se realiza verificación independiente de las fuentes ni comprobación de enlaces todavía. Las pruebas específicas de esta ampliación deben comprobarse en Actions. El backend desplegado y Supabase real siguen pendientes.
