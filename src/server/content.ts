@@ -1,6 +1,7 @@
+import {selectEditorial,aiEnabled} from "./editorial-ai.ts";
 import {composeDraft} from "../domain/content.ts";
 import type {ContentInput} from "../domain/content.ts";
-type Env={SUPABASE_URL:string;SUPABASE_PUBLISHABLE_KEY:string;SUPABASE_SERVICE_ROLE_KEY:string};
+type Env={SUPABASE_URL:string;SUPABASE_PUBLISHABLE_KEY:string;SUPABASE_SERVICE_ROLE_KEY:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string;OPENAI_EDITORIAL_ENABLED?:string};
 const id=(x:unknown):x is string=>typeof x==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
 const json=(x:unknown,status=200)=>new Response(JSON.stringify(x),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
 export async function generateContent(request:Request,env:Env,send:typeof fetch=fetch):Promise<Response>{
@@ -18,7 +19,17 @@ export async function generateContent(request:Request,env:Env,send:typeof fetch=
   const fail=async(r:Response)=>{const e=await r.json().catch(()=>({})) as {code?:string};return json({error:"CONTENT_NOT_SAVED"},e.code==="42501"?403:e.code==="P0002"?404:e.code==="40001"?409:e.code==="22023"?400:502);};
   const context=await rpc("content_context",args);if(!context.ok)return fail(context);
   const snapshot=await context.json() as Omit<ContentInput,"now">;
-  const draft=composeDraft({...snapshot,now:Date.now()});
+  const input={...snapshot,now:Date.now()};
+  const baseline=composeDraft(input);
+  if(baseline.blocked)return json({saved:false,draft:baseline});
+  let draft=baseline;
+  if(aiEnabled(env)){
+   const reservation=await rpc("reserve_editorial_request",{...args,p_id:b.requestId});
+   if(!reservation.ok)return fail(reservation);
+   const reserved=await reservation.json();
+   if(reserved?.draft)return json({saved:true,draft:reserved.draft});
+   draft=reserved?.allowed===true?await selectEditorial(input,env,send):{...baseline,editorialMode:"fallback"};
+  }else draft={...baseline,editorialMode:"controlled"};
   if(draft.blocked)return json({saved:false,draft});
   const saved=await rpc("save_content_draft",{...args,p_id:b.requestId,p_snapshot:snapshot,p_draft:draft});
   if(!saved.ok)return fail(saved);

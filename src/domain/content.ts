@@ -7,11 +7,11 @@ import {dateKey,shiftDay} from "../client/calendar.ts";
 export type ContentInput={
  property:{id:string;address:string;locality:string;status:PropertyStatus;revision:number;transaction_type:"SALE"|"LEASE"};
  post:{id:string;property_id:string;property_revision:number;planned_at:string;format:Format;workflow_state:WorkflowState;editorial_state:EditorialState;angle?:string;eventId?:string};
- facts:Fact[];sources:PlanSource[];factIds:string[];assets:PlanAsset[];assetIds:string[];events:PlanEvent[];now:number;history?:string[];
+ facts:Fact[];sources:PlanSource[];factIds:string[];assets:PlanAsset[];assetIds:string[];events:PlanEvent[];now:number;history?:string[];editorialChoice?:number;
 };
 export type Claim={factId:string;key:string;value:unknown;sourceId:string;text:string};
 export type DraftVariant={channel:"facebook"|"instagram";body:string;cta:string;claimIds:string[]};
-export type ContentDraft={variants:DraftVariant[];claims:Claim[];eventId?:string;assetIds:string[];issues:string[];blocked:boolean;generator:"controlled-v1";generatedAt:string;revision:number;recipeIds?:string[]};
+export type ContentDraft={variants:DraftVariant[];claims:Claim[];eventId?:string;assetIds:string[];issues:string[];blocked:boolean;generator:"controlled-v1";generatedAt:string;revision:number;recipeIds?:string[];editorialMode?:"assisted"|"controlled"|"fallback"};
 const angles:Record<string,string[]>={
  "Distribución y superficie":["bedrooms","bathrooms","living_sqft"],
  "Terreno y dimensiones":["lot_acres"],
@@ -136,7 +136,7 @@ export function composeDraft(input:ContentInput):ContentDraft{
   });
   return options[0];
  };
- const offset=hash(post.id)%4;
+ const offset=(hash(post.id)+(input.editorialChoice??0))%4;
  const hook=select("hook:"+family,phrases[family],offset);
  const igHook=select("hook:"+family,phrases[family],(offset+1)%4,hook.id);
  const actionFamily=family==="event"?"event":p.transaction_type==="LEASE"?"rental":"sale";
@@ -144,9 +144,10 @@ export function composeDraft(input:ContentInput):ContentDraft{
  const igAction=select("cta:instagram:"+actionFamily,instagramActions[actionFamily],offset);
  const cta=fbAction.text,igCta=igAction.text;
  const disclosure=assets.some(a=>a.staging_status==="VIRTUAL")?"Some images include virtual staging.":"";
- const facebook=[hook.text,address,details.length?details.join("\n"):null,cta,disclosure].filter(Boolean).join("\n\n");
+ const identityFirst=(input.editorialChoice??0)>=4;
+ const facebook=[...(identityFirst?[address,hook.text]:[hook.text,address]),details.length?details.join("\n"):null,cta,disclosure].filter(Boolean).join("\n\n");
  const instagram=[address,details.length?details.join(" • "):igHook.text,igCta,disclosure].filter(Boolean).join("\n\n");
- const recipeIds=[hook.id,...(details.length?[]:[igHook.id]),fbAction.id,igAction.id];
+ const recipeIds=[...(identityFirst?["layout:identity"]:["layout:hook"]),hook.id,...(details.length?[]:[igHook.id]),fbAction.id,igAction.id];
  issues.push("BROKER_SIGNATURE_PENDING","FACT_REVALIDATION_REQUIRED","FINAL_EDITORIAL_REVIEW","MEDIA_OBJECT_CHECK_PENDING");
  return {variants:[{channel:"facebook",body:facebook,cta,claimIds:claims.map(c=>c.factId)},{channel:"instagram",body:instagram,cta:igCta,claimIds:claims.map(c=>c.factId)}],claims,eventId,assetIds:assets.map(a=>a.id),issues,recipeIds,blocked:false,generator:"controlled-v1",generatedAt:new Date(now).toISOString(),revision:p.revision};
 }

@@ -48,10 +48,10 @@ test("missing strategy or evidence cannot generate generic fabricated content",(
 
 test("editorial memory rotates hooks and CTAs while preserving claims",()=>{
  const first=composeDraft(base);const second=composeDraft({...base,history:first.recipeIds});
- assert.equal(first.recipeIds.length,3);assert.ok(second.recipeIds.every(id=>!first.recipeIds.includes(id)));
+ assert.equal(first.recipeIds.length,4);assert.ok(second.recipeIds.filter(id=>!id.startsWith("layout:")).every(id=>!first.recipeIds.includes(id)));
  assert.deepEqual(first.claims,second.claims);assert.notEqual(first.variants[0].body,second.variants[0].body);
 });
 test("all recently used phrases fall back to the least recently used",()=>{
  const all=["hook:distribution:0","hook:distribution:1","hook:distribution:2","hook:distribution:3"];
- const r=composeDraft({...base,history:all});assert.equal(r.recipeIds[0],all[3]);
+ const r=composeDraft({...base,history:all});assert.equal(r.recipeIds.find(x=>x.startsWith("hook:")),all[3]);
 });
