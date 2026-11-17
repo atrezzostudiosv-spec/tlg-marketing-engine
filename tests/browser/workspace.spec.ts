@@ -98,3 +98,18 @@ test("content preview produces differentiated evidence-bound drafts without expo
  await expect(dialog.getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
  await page.screenshot({path:"test-results/previews/08-content-intelligence.png",fullPage:true});
 });
+
+test("editorial regeneration rotates language without changing facts",async({page})=>{
+ await page.goto("/");
+ await page.getByRole("button",{name:"Explorar demostración"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Excepciones",exact:true}).click();
+ await page.locator(".post-row").first().click();
+ const dialog=page.getByRole("dialog",{name:"Detalle de publicación"});
+ await dialog.getByRole("button",{name:"Preparar copies"}).click();
+ await expect(dialog.locator(".draft-variant").first()).toContainText("4 bedrooms");
+ const old=await dialog.locator(".draft-variant").first().textContent();
+ await dialog.getByRole("button",{name:"Preparar copies"}).click();
+ await expect(dialog.locator(".draft-variant").first()).not.toHaveText(old??"");
+ await expect(dialog.locator(".draft-variant").first()).toContainText("4 bedrooms");
+ await expect(dialog.getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
+});

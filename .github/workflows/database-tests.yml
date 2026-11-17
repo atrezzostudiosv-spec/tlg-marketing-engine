@@ -31,7 +31,7 @@ jobs:
           PG_CONTAINER: ${{ job.services.postgres.id }}
         run: |
           set -euo pipefail
-          for file in tests/sql/bootstrap.sql supabase/migrations/*.sql tests/sql/property_updates.sql tests/sql/property_master.sql tests/sql/planner.sql; do
+          for file in tests/sql/bootstrap.sql supabase/migrations/*.sql tests/sql/property_updates.sql tests/sql/property_master.sql tests/sql/planner.sql tests/sql/content_drafts.sql; do
             echo "Running $file"
             docker exec -i "$PG_CONTAINER" psql -U postgres -d tlg -v ON_ERROR_STOP=1 < "$file"
           done

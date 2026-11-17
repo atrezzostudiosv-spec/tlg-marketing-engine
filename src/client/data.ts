@@ -47,7 +47,7 @@ export async function loadMaster(workspace:string,property:string):Promise<Maste
  if(facts.error||sources.error||members.error||[facts.data,sources.data].some(x=>!x||x.length===1000)||members.data?.length!==1)throw Error("No se pudo consultar la ficha completa.");
  return {facts:facts.data as MasterFact[],sources:sources.data as MasterSource[],canEdit:["owner","editor"].includes(members.data[0].role)};
 }
-export async function masterMutation<T>(path:"property-master"|"property-fact"|"planner",body:Record<string,unknown>):Promise<T>{
+export async function masterMutation<T>(path:"property-master"|"property-fact"|"planner"|"content",body:Record<string,unknown>):Promise<T>{
  if(!client)throw Error("Sin conexión");
  const {data:{session}}=await client.auth.getSession();
  if(!session)throw Error("La sesión ha expirado.");
@@ -88,4 +88,14 @@ export async function loadContentInput(workspace:string,postId:string):Promise<i
  if(property.error||strategy.error||refs.error||media.error||!property.data||!strategy.data||!refs.data||!media.data||refs.data.length>=1000||media.data.length>=1000||strategy.data.revision!==post.property_revision)throw Error("La estrategia o la evidencia no están completas.");
  // Preview only. These reads are not an atomic export authorization.
  return {...input,property:property.data,post:{...post,angle:strategy.data.angle,eventId:post.event_id??undefined},factIds:refs.data.map(x=>x.fact_id),assetIds:media.data.map(x=>x.asset_id),now:Date.now()};
+}
+
+export async function prepareAndSaveContent(workspaceId:string,postId:string,requestId:string){
+ return masterMutation<{saved:boolean;draft:import("../domain/content.ts").ContentDraft}>("content",{workspaceId,postId,requestId});
+}
+export async function savedContentHistory(workspace:string,postId:string){
+ if(!client)throw Error("Sin conexión");
+ const {data,error}=await client.from("content_drafts").select("id,revision,draft,created_at").eq("workspace_id",workspace).eq("post_id",postId).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(10);
+ if(error||!data)throw Error("No se pudo recuperar el historial.");
+ return data as {id:string;revision:number;draft:import("../domain/content.ts").ContentDraft;created_at:string}[];
 }
