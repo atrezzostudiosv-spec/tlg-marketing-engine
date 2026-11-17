@@ -42,7 +42,7 @@ begin
  then raise exception 'revision conflict' using errcode='40001'; end if;
 
  perform 1 from public.sources where workspace_id=p_workspace and id=p_source
-  and authorization='APPROVED' and obtained_at <= current_time_value for share;
+  and authorization_status='APPROVED' and obtained_at <= current_time_value for share;
  if not found then raise exception 'source not approved' using errcode='22023'; end if;
  if p_key is null or p_key not in ('status','price') or p_value is null
  then raise exception 'unsupported fact' using errcode='22023'; end if;

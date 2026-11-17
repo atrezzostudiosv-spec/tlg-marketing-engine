@@ -31,7 +31,7 @@ create table public.sources (
  workspace_id uuid not null references public.workspaces,
  id uuid not null default gen_random_uuid(),
  type text not null, reference text not null, obtained_at timestamptz not null,
- authorization text not null check(authorization in ('APPROVED','UNKNOWN','DENIED')),
+ authorization_status text not null check(authorization_status in ('APPROVED','UNKNOWN','DENIED')),
  notes text,
  primary key(workspace_id,id)
 );

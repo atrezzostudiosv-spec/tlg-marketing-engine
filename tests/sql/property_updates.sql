@@ -8,7 +8,7 @@ insert into public.workspace_members values
 insert into public.properties(workspace_id,id,address,locality,transaction_type,status) values
  ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000011','Synthetic A','Demo','SALE','ACTIVE'),
  ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021','Synthetic B','Demo','SALE','ACTIVE');
-insert into public.sources(workspace_id,id,type,reference,obtained_at,authorization) values
+insert into public.sources(workspace_id,id,type,reference,obtained_at,authorization_status) values
  ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000012','demo','demo',now(),'APPROVED'),
  ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000022','demo','demo',now(),'APPROVED'),
  ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000013','demo','demo',now(),'DENIED');
