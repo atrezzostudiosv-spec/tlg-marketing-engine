@@ -1,4 +1,5 @@
 import {useEffect,useState} from "react";
+import {MediaLibrary} from "./MediaLibrary.tsx";
 import type {FormEvent} from "react";
 import {fields,statuses,parseFact} from "../domain/facts.ts";
 import {isFactCurrent} from "../domain/eligibility.ts";
@@ -46,6 +47,7 @@ export function PropertyMaster({property,workspace,demo,onClose,onUpdated,local,
  {!demo&&<><h3>Registrar fuente</h3><form className="master-form" onSubmit={register}><label>Referencia verificable<input value={reference} maxLength={500} minLength={3} required placeholder="Referencia del listing o confirmación del broker" onChange={e=>{setReference(e.target.value);setAttested(false)}}/></label><label className="checkline"><input type="checkbox" checked={attested} onChange={e=>setAttested(e.target.checked)}/>He consultado la fuente y tengo autorización para utilizarla.</label><button className="secondary" disabled={busy||!attested}>Registrar fuente</button></form></>}
  </>}
  {!master.canEdit&&<p className="notice">Tu rol solo permite consultar datos.</p>}</>}
+ <MediaLibrary workspace={workspace} property={property.id} demo={demo} canEdit={master?.canEdit??false}/>
  {message&&<p className="notice" role="status">{message}</p>}{error&&<p className="warning" role="alert">{error}</p>}
  {stale&&!demo&&<p className="notice">Actualiza la ficha antes de confirmar otro dato.</p>}
  </section></div>

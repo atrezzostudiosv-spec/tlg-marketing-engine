@@ -61,7 +61,7 @@ export async function loadPlanningInputs(workspace:string):Promise<Pick<import("
  const [f,s,a,e]=await Promise.all([
   client.from("property_facts").select("id,property_id,key,typed_value,source_id,verified_at,expires_at,verification_status").eq("workspace_id",workspace).limit(1000),
   client.from("sources").select("id,property_id,authorization_status").eq("workspace_id",workspace).limit(1000),
-  client.from("assets").select("id,property_id,media_type,rights_status,staging_status,approved_at").eq("workspace_id",workspace).limit(1000),
+  client.from("assets").select("id,property_id,media_type,rights_status,staging_status,approved_at,visual_role").not("sha256","is",null).eq("workspace_id",workspace).limit(1000),
   client.from("events").select("id,property_id,type,start_at,end_at,confirmation_status").eq("workspace_id",workspace).limit(1000)
  ]);
  if([f,s,a,e].some(r=>r.error||!r.data||r.data.length>=1000))throw Error("No se pudo consultar la información completa de planificación.");
@@ -98,4 +98,26 @@ export async function savedContentHistory(workspace:string,postId:string){
  const {data,error}=await client.from("content_drafts").select("id,revision,draft,created_at").eq("workspace_id",workspace).eq("post_id",postId).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(10);
  if(error||!data)throw Error("No se pudo recuperar el historial.");
  return data as {id:string;revision:number;draft:import("../domain/content.ts").ContentDraft;created_at:string}[];
+}
+
+export type MediaRow=import("../domain/planner.ts").PlanAsset&{filename:string|null;mime_type:string|null;byte_size:number|null;visual_role:string;sha256:string|null};
+export async function listMedia(workspace:string,property:string):Promise<MediaRow[]>{
+ if(!client)throw Error("Sin conexión");
+ const {data,error}=await client.from("assets").select("id,property_id,media_type,rights_status,staging_status,approved_at,filename,mime_type,byte_size,visual_role,sha256").eq("workspace_id",workspace).eq("property_id",property).order("approved_at",{ascending:false}).limit(1000);
+ if(error||!data||data.length>=1000)throw Error("No se pudo consultar la biblioteca completa.");
+ return data as MediaRow[];
+}
+export async function mediaCall(params:Record<string,string>,body?:BodyInit,mime?:string){
+ if(!client)throw Error("Sin conexión");
+ const {data:{session}}=await client.auth.getSession();
+ if(!session)throw Error("La sesión expiró.");
+ const r=await fetch("/api/media?"+new URLSearchParams(params),{method:"POST",headers:{authorization:"Bearer "+session.access_token,...(mime?{"Content-Type":mime}:{})},body,redirect:"error"});
+ if(!r.ok)throw Error(r.status===409?"La selección cambió o el archivo no supera la verificación. Actualiza antes de reintentar.":r.status===403?"No tienes autorización.":r.status===413?"El archivo supera 6 MB.":"No se confirmó la operación multimedia.");
+ return r;
+}
+export async function postMediaIds(workspace:string,post:string):Promise<string[]>{
+ if(!client)throw Error("Sin conexión");
+ const {data,error}=await client.from("post_assets").select("asset_id,ordinal").eq("workspace_id",workspace).eq("post_id",post).order("ordinal").limit(6);
+ if(error||!data||data.length>5)throw Error("No se pudo recuperar la selección.");
+ return data.map(x=>x.asset_id);
 }

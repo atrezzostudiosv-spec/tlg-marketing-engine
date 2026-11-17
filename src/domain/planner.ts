@@ -5,7 +5,7 @@ import {dateKey,shiftDay,clock} from "../client/calendar.ts";
 
 export type PlanProperty={id:string;status:PropertyStatus;revision:number;priority:number;transaction_type:"SALE"|"LEASE"};
 export type PlanSource={id:string;property_id:string|null;authorization_status:"APPROVED"|"UNKNOWN"|"DENIED"};
-export type PlanAsset={id:string;property_id:string;media_type:"image"|"video";rights_status:string;staging_status:string;approved_at:string|null};
+export type PlanAsset={id:string;property_id:string;media_type:"image"|"video";rights_status:string;staging_status:string;approved_at:string|null;visual_role?:string};
 export type PlanEvent={id:string;property_id:string;type:string;start_at:string;end_at:string;confirmation_status:string};
 export type History={id:string;property_id:string;planned_at:string;format:Format;workflow_state:WorkflowState;angle?:string;eventId?:string};
 export type PlanInput={properties:PlanProperty[];facts:Fact[];sources:PlanSource[];assets:PlanAsset[];events:PlanEvent[];history:History[];now:number;start:string;perWeek:number};
@@ -92,7 +92,14 @@ export function buildPlan(input:PlanInput):PlanResult{
    const c=pool[0];if(!c)continue;
    const prevAngles=h.filter(x=>x.property_id===c.p.id&&x.angle).sort((a,b)=>b.planned_at.localeCompare(a.planned_at)).map(x=>x.angle);
    const angle=forced?{angle:"Open House confirmado",goal:"Promover asistencia al evento confirmado",facts:[c.status]}:c.angles.find(a=>!prevAngles.slice(0,2).includes(a.angle))??c.angles[0];
-   const media=c.media.slice(0,5);const format=media.length>=2?"carousel":"photo";
+   const recentMedia=new Set<string>();
+   // Prefer exterior for the first image, then diverse room types; no inference from filenames.
+   const order=["exterior","living","kitchen","outdoor","bedroom","bathroom","other"];
+   const ranked=[...c.media].sort((a,b)=>{const rank=(x:PlanAsset)=>{const i=order.indexOf(x.visual_role??"other");return i<0?order.length:i;};return rank(a)-rank(b)||a.id.localeCompare(b.id);});
+   const media:PlanAsset[]=[];
+   for(const a of ranked){const role=a.visual_role??"other";if(!recentMedia.has(role)){media.push(a);recentMedia.add(role);}if(media.length===5)break;}
+   for(const a of ranked){if(media.length===5)break;if(!media.some(x=>x.id===a.id))media.push(a);}
+const format=media.length>=2?"carousel":"photo";
    const reason=forced?"Evento confirmado próximo":count(c.p.id)===0?"Cobertura del inventario": "Rotación y prioridad comercial";
    items.push({id:"plan-"+day+"-"+c.p.id,propertyId:c.p.id,revision:c.p.revision,day,plannedAt:texasNoon(day),format,angle:angle.angle,goal:angle.goal,factIds:angle.facts.map(f=>f.id),assetIds:media.map(a=>a.id),eventId:forced?.event.id,reason,needsMedia:media.length===0});
    if(forced)usedEvents.add(forced.event.id);occupied.add(day);left--;

@@ -3,6 +3,7 @@ import {composeDraft} from "../domain/content.ts";
 import type {ContentDraft,ContentInput} from "../domain/content.ts";
 import type {Listing,CalendarPost,MasterData} from "../client/data.ts";
 import {prepareAndSaveContent,savedContentHistory} from "../client/data.ts";
+import {demoMedia} from "../client/demo-media.ts";
 import {demoMaster} from "./PropertyMaster.tsx";
 const labels:Record<string,string>={
  PROPERTY_CHANGED:"La propiedad o su revisión cambió.",
@@ -36,7 +37,7 @@ export function ContentPreview({property,post,workspace,demo,master,history,onDe
    let input:ContentInput;
    if(demo){
     const m=master??demoMaster(property);
-    input={property,post,facts:m.facts.map(f=>({id:f.id,propertyId:property.id,key:f.key,value:f.typed_value,sourceId:property.id+"-"+f.source_id,verifiedAt:f.verified_at,expiresAt:f.expires_at,status:f.verification_status})),sources:m.sources.map(s=>({id:property.id+"-"+s.id,property_id:property.id,authorization_status:s.authorization_status})),factIds:post.factIds??[],assetIds:post.assetIds??[],assets:[],events:[],now:Date.now(),history};
+    input={property,post,facts:m.facts.map(f=>({id:f.id,propertyId:property.id,key:f.key,value:f.typed_value,sourceId:property.id+"-"+f.source_id,verifiedAt:f.verified_at,expiresAt:f.expires_at,status:f.verification_status})),sources:m.sources.map(s=>({id:property.id+"-"+s.id,property_id:property.id,authorization_status:s.authorization_status})),factIds:post.factIds??[],assetIds:post.assetIds??[],assets:demoMedia(property.id),events:[],now:Date.now(),history};
    const result=composeDraft(input);setDraft(result);if(!result.blocked)onDemoDraft(result.recipeIds??[]);
    }else{const id=requestId||crypto.randomUUID();setRequestId(id);const r=await prepareAndSaveContent(workspace,post.id,id);setDraft(r.draft);setSaved(r.saved);setRequestId("");setReload(n=>n+1);}
   }catch(e){setError((e as Error).message||"No se pudo preparar el contenido.");}finally{setBusy(false);}
