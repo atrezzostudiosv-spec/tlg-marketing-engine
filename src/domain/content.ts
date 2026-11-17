@@ -7,11 +7,11 @@ import {dateKey,shiftDay} from "../client/calendar.ts";
 export type ContentInput={
  property:{id:string;address:string;locality:string;status:PropertyStatus;revision:number;transaction_type:"SALE"|"LEASE"};
  post:{id:string;property_id:string;property_revision:number;planned_at:string;format:Format;workflow_state:WorkflowState;editorial_state:EditorialState;angle?:string;eventId?:string};
- facts:Fact[];sources:PlanSource[];factIds:string[];assets:PlanAsset[];assetIds:string[];events:PlanEvent[];now:number;
+ facts:Fact[];sources:PlanSource[];factIds:string[];assets:PlanAsset[];assetIds:string[];events:PlanEvent[];now:number;history?:string[];
 };
 export type Claim={factId:string;key:string;value:unknown;sourceId:string;text:string};
 export type DraftVariant={channel:"facebook"|"instagram";body:string;cta:string;claimIds:string[]};
-export type ContentDraft={variants:DraftVariant[];claims:Claim[];eventId?:string;assetIds:string[];issues:string[];blocked:boolean;generator:"controlled-v1";generatedAt:string;revision:number};
+export type ContentDraft={variants:DraftVariant[];claims:Claim[];eventId?:string;assetIds:string[];issues:string[];blocked:boolean;generator:"controlled-v1";generatedAt:string;revision:number;recipeIds?:string[]};
 const angles:Record<string,string[]>={
  "Distribución y superficie":["bedrooms","bathrooms","living_sqft"],
  "Terreno y dimensiones":["lot_acres"],
@@ -21,13 +21,24 @@ const angles:Record<string,string[]>={
  "Presentación del listing":[],
  "Open House confirmado":[]
 };
+// Curated editorial language. The facts, identity, and disclosure are rendered separately.
 const phrases={
- distribution:["Looking for a closer look at the layout?","Let's start with the numbers that matter when comparing homes."],
- land:["Take a closer look at the property beyond the home.","Here's a detail worth considering as you compare properties."],
- price:["Considering your next move? Here's the current asking price.","A closer look at the asking price for this property."],
- general:["I'd love to help you explore this listing.","Let's take a closer look at this property."],
- rental:["Exploring rental options? I'd be happy to help.","Let's talk about your next rental."],
- event:["I'd love to welcome you at our upcoming open house.","Come see the property in person at our upcoming open house."]
+ distribution:["When you're comparing homes, start with the space itself.","Let's look at the numbers behind the floor plan.","The right amount of space matters. Here's a closer look.","Before you schedule a tour, here's a useful overview."],
+ land:["Take a closer look at the property beyond the home.","Here's a detail worth considering as you compare properties.","A property's lot size can be an important part of your decision.","If land is on your list, here's where to start."],
+ price:["Considering your next move? Here's the current asking price.","A closer look at the asking price for this property.","Start your search with the current listing price.","Let's talk about the numbers behind this listing."],
+ general:["I'd love to help you explore this listing.","Let's take a closer look at this property.","Have a property on your shortlist? Let's talk about the details.","A private tour can help you decide what feels right for you."],
+ rental:["Exploring rental options? I'd be happy to help.","Let's talk about your next rental.","Planning your next move? Here's a rental to explore.","If you're comparing rental options, let's talk through the details."],
+ event:["I'd love to welcome you at our upcoming open house.","Come see the property in person at our upcoming open house.","Mark your calendar for our next open house.","Have questions about this listing? Join us at the open house."]
+};
+const actions={
+ sale:["I'd be happy to answer your questions or arrange a private tour. Send me a message.","Message me for the full property details or to arrange a private tour.","Reach out for the listing details and let's talk about a private tour.","Have questions? Send me a message and I'll help you with the next steps."],
+ rental:["Send me a message for rental details.","I'd be happy to share the rental information. Message me.","Reach out to discuss the rental details.","Have questions about the rental? Send me a message."],
+ event:["Message me for open house details.","Reach out with any questions before the open house.","Send me a message if you'd like more information about the event.","I'd be happy to help with your open house questions. Message me."]
+};
+const instagramActions={
+ sale:["DM me for details or a private tour.","DM me for the full listing details.","Interested in seeing more? Send me a DM.","Let's talk about the property. DM me."],
+ rental:["DM me for rental details.","DM me to discuss the rental.","Questions about the rental? DM me.","Send me a DM for more information."],
+ event:["DM me for open house details.","Questions before the open house? DM me.","DM me for event information.","Send me a DM if you have questions about the open house."]
 };
 const norm=(s:string)=>s.trim().replace(/\s+/g," ");
 const numeric=(n:number)=>{
@@ -116,13 +127,26 @@ export function composeDraft(input:ContentInput):ContentDraft{
  if(post.format==="reel"&&(assets.length!==1||assets[0].media_type!=="video"))issues.push("FINAL_VIDEO_REQUIRED");
  if(post.format==="story")issues.push("STORY_ASSET_REVIEW");
  const address=norm(p.address)+" | "+norm(p.locality);
- const idx=hash(post.id)%2;
- const hook=phrases[family][idx];
- const cta=p.transaction_type==="LEASE"?"Send me a message for rental details.":family==="event"?"Message me for open house details.":idx?"Message me for the full property details or to arrange a private tour.":"I'd be happy to answer your questions or arrange a private tour. Send me a message.";
- const igCta=p.transaction_type==="LEASE"?"DM me for rental details.":family==="event"?"DM me for open house details.":"DM me for details or a private tour.";
+ const history=input.history??[];
+ const select=(group:string,choices:readonly string[],offset:number,avoid?:string)=>{
+  const options=choices.map((text,i)=>({text,id:group+":"+i,index:i})).filter(x=>x.id!==avoid);
+  options.sort((a,b)=>{
+   const ai=history.indexOf(a.id),bi=history.indexOf(b.id);
+   return (ai<0?0:1)-(bi<0?0:1)||(bi-ai)||((a.index-offset+choices.length)%choices.length)-((b.index-offset+choices.length)%choices.length);
+  });
+  return options[0];
+ };
+ const offset=hash(post.id)%4;
+ const hook=select("hook:"+family,phrases[family],offset);
+ const igHook=select("hook:"+family,phrases[family],(offset+1)%4,hook.id);
+ const actionFamily=family==="event"?"event":p.transaction_type==="LEASE"?"rental":"sale";
+ const fbAction=select("cta:facebook:"+actionFamily,actions[actionFamily],offset);
+ const igAction=select("cta:instagram:"+actionFamily,instagramActions[actionFamily],offset);
+ const cta=fbAction.text,igCta=igAction.text;
  const disclosure=assets.some(a=>a.staging_status==="VIRTUAL")?"Some images include virtual staging.":"";
- const facebook=[hook,address,details.length?details.join("\n"):null,cta,disclosure].filter(Boolean).join("\n\n");
- const instagram=[address,details.length?details.join(" • "):phrases[family][1-idx],igCta,disclosure].filter(Boolean).join("\n\n");
+ const facebook=[hook.text,address,details.length?details.join("\n"):null,cta,disclosure].filter(Boolean).join("\n\n");
+ const instagram=[address,details.length?details.join(" • "):igHook.text,igCta,disclosure].filter(Boolean).join("\n\n");
+ const recipeIds=[hook.id,...(details.length?[]:[igHook.id]),fbAction.id,igAction.id];
  issues.push("BROKER_SIGNATURE_PENDING","FACT_REVALIDATION_REQUIRED","FINAL_EDITORIAL_REVIEW","MEDIA_OBJECT_CHECK_PENDING");
- return {variants:[{channel:"facebook",body:facebook,cta,claimIds:claims.map(c=>c.factId)},{channel:"instagram",body:instagram,cta:igCta,claimIds:claims.map(c=>c.factId)}],claims,eventId,assetIds:assets.map(a=>a.id),issues,blocked:false,generator:"controlled-v1",generatedAt:new Date(now).toISOString(),revision:p.revision};
+ return {variants:[{channel:"facebook",body:facebook,cta,claimIds:claims.map(c=>c.factId)},{channel:"instagram",body:instagram,cta:igCta,claimIds:claims.map(c=>c.factId)}],claims,eventId,assetIds:assets.map(a=>a.id),issues,recipeIds,blocked:false,generator:"controlled-v1",generatedAt:new Date(now).toISOString(),revision:p.revision};
 }
