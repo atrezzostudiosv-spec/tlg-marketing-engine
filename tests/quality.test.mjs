@@ -1,0 +1,17 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {composeDraft} from "../src/domain/content.ts";
+import {assessQuality} from "../src/domain/quality.ts";
+const now=Date.parse("2026-11-17T09:00:00Z");
+const property={id:"p",address:"Synthetic Residence",locality:"Demo, TX",status:"ACTIVE",revision:1,transaction_type:"SALE"};
+const post={id:"post",property_id:"p",property_revision:1,planned_at:"2026-11-18T18:00:00Z",format:"photo",workflow_state:"PENDIENTE",editorial_state:"BORRADOR",angle:"Precio confirmado"};
+const f=(key,value)=>({id:key,propertyId:"p",key,value,sourceId:"s",verifiedAt:"2026-11-17T08:00:00Z",expiresAt:null,status:"CONFIRMED"});
+const input={property,post,facts:[f("status","ACTIVE"),f("price",123456)],sources:[{id:"s",property_id:"p",authorization_status:"APPROVED"}],factIds:["status","price"],assets:[{id:"a",property_id:"p",media_type:"image",rights_status:"APPROVED",staging_status:"VIRTUAL",approved_at:"2026-11-17T08:00:00Z"}],assetIds:["a"],events:[],history:[]};
+const draft=composeDraft({...input,now});
+const ctx={input,draftId:"d",draft,original:input,variants:draft.variants,media:[{id:"a",hash:"a".repeat(64),size:12,mime:"image/png",exists:true}],canApprove:true};
+const review={signature:"Synthetic Broker",policyReference:"Synthetic approval"};
+test("complete draft gets exact two channels, story text, disclosure and bounded expiry",()=>{const r=assessQuality(ctx,review,now);assert.deepEqual(r.issues,[]);assert.equal(r.expiresAt,"2026-11-17T09:15:00.000Z");assert.match(r.package.facebook,/\$123,456/);assert.match(r.package.instagram,/Some images include virtual staging/);assert.match(r.package.storyText,/Synthetic Broker/);assert.deepEqual(r.package.assetIds,["a"]);});
+test("changed price, changed variant, changed asset and revoked rights block",()=>{for(const c of [{...ctx,input:{...input,facts:[f("status","ACTIVE"),f("price",1)]}},{...ctx,variants:[]},{...ctx,media:[{...ctx.media[0],exists:false}]},{...ctx,input:{...input,assets:[{...input.assets[0],rights_status:"DENIED"}]}}])assert.equal(assessQuality(c,review,now).package,null);});
+test("missing broker confirmation, old data, missing draft and scheduled posts block",()=>{assert.equal(assessQuality(ctx,{signature:"",policyReference:""},now).package,null);assert.equal(assessQuality(ctx,review,now+86400000).package,null);assert.equal(assessQuality({...ctx,draft:null},review,now).package,null);assert.equal(assessQuality({...ctx,input:{...input,post:{...post,workflow_state:"PROGRAMADO"}}},review,now).package,null);});
+test("fabricated copy cannot match reconstructed facts",()=>{const modified={...draft,variants:draft.variants.map(v=>({...v,body:v.body+" Pool included."}))};assert.equal(assessQuality({...ctx,draft:modified,variants:modified.variants},review,now).package,null);});
+test("evidence expiry can shorten approval",()=>{const current={...input,facts:input.facts.map(f=>({...f,expiresAt:"2026-11-17T09:03:00Z"}))};assert.equal(assessQuality({...ctx,input:current},review,now).expiresAt,"2026-11-17T09:03:00.000Z");});

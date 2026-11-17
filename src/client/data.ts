@@ -47,7 +47,7 @@ export async function loadMaster(workspace:string,property:string):Promise<Maste
  if(facts.error||sources.error||members.error||[facts.data,sources.data].some(x=>!x||x.length===1000)||members.data?.length!==1)throw Error("No se pudo consultar la ficha completa.");
  return {facts:facts.data as MasterFact[],sources:sources.data as MasterSource[],canEdit:["owner","editor"].includes(members.data[0].role)};
 }
-export async function masterMutation<T>(path:"property-master"|"property-fact"|"planner"|"content",body:Record<string,unknown>):Promise<T>{
+export async function masterMutation<T>(path:"property-master"|"property-fact"|"planner"|"content"|"quality",body:Record<string,unknown>):Promise<T>{
  if(!client)throw Error("Sin conexión");
  const {data:{session}}=await client.auth.getSession();
  if(!session)throw Error("La sesión ha expirado.");

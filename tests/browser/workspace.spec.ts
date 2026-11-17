@@ -132,3 +132,15 @@ test("media order is preserved and virtual staging updates draft",async({page})=
  await expect(dialog.locator(".draft-variant").first()).toContainText("Some images include virtual staging.");
  await expect(dialog.getByRole("button",{name:"Descargar medios"})).toBeDisabled();
 });
+
+test("quality gate remains unavailable for fictional demo",async({page})=>{
+ await page.goto("/");
+ await page.getByRole("button",{name:"Explorar demostración"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Excepciones",exact:true}).click();
+ await page.locator(".post-row").first().click();
+ const dialog=page.getByRole("dialog",{name:"Detalle de publicación"});
+ await expect(dialog.getByRole("heading",{name:"Validar paquete editorial"})).toBeVisible();
+ await expect(dialog.getByText("La demostración no puede conceder el estado LISTO.",{exact:false})).toBeVisible();
+ await expect(dialog.getByRole("button",{name:"Autorizar paquete"})).toHaveCount(0);
+ await expect(dialog.getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
+});
