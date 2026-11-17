@@ -12,7 +12,7 @@ export type PlanInput={properties:PlanProperty[];facts:Fact[];sources:PlanSource
 export type PlanItem={id:string;propertyId:string;revision:number;day:string;plannedAt:string;format:"photo"|"carousel";angle:string;goal:string;factIds:string[];assetIds:string[];eventId?:string;reason:string;needsMedia:boolean};
 export type PlanResult={items:PlanItem[];excluded:{propertyId:string;reason:string}[];existing:History[];start:string;end:string;unfilled:number;uncovered:string[]};
 const dayDiff=(a:string,b:string)=>(Date.parse(a+"T12:00:00Z")-Date.parse(b+"T12:00:00Z"))/86400000;
-const unique=<T extends {id:string}>(arr:T[])=>new Set(arr.map(x=>x.id)).size===arr.length;
+const unique=(arr:readonly {id:string}[])=>new Set(arr.map(x=>x.id)).size===arr.length;
 export function texasNoon(day:string):string {
  shiftDay(day,0);
  // Noon in Texas is always 17:00Z or 18:00Z, including DST transition dates.

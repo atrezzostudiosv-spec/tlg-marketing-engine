@@ -67,3 +67,18 @@ test("master fact confirmation updates demo and blocks old posts",async({page})=
  await page.locator(".post-row").first().click();
  await expect(page.getByRole("dialog").getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
 });
+
+test("fourteen-day planner preserves existing entries and adds drafts only",async({page})=>{
+ await page.goto("/");
+ await page.getByRole("button",{name:"Explorar demostración"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Calendario",exact:true}).click();
+ await page.getByRole("button",{name:"Generar calendario"}).click();
+ await expect(page.locator(".planner-days .planner-day")).toHaveCount(14);
+ await expect(page.locator(".planner-entry.existing").first()).toBeVisible();
+ await expect(page.getByText("Propuesta editorial, no contenido listo.",{exact:false})).toBeVisible();
+ await page.screenshot({path:"test-results/previews/07-content-planner.png",fullPage:true});
+ await page.getByRole("button",{name:"Incorporar borradores a la demo"}).click();
+ await expect(page.getByText("Plan incorporado a la demostración.",{exact:false})).toBeVisible();
+ await page.getByRole("button",{name:"Generar calendario"}).click();
+ await expect(page.locator(".planner-summary span").first()).toHaveText("0 propuestas nuevas");
+});
