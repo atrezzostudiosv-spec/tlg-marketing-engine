@@ -113,3 +113,22 @@ test("editorial regeneration rotates language without changing facts",async({pag
  await expect(dialog.locator(".draft-variant").first()).toContainText("4 bedrooms");
  await expect(dialog.getByRole("button",{name:"Copiar publicación"})).toBeDisabled();
 });
+
+test("media order is preserved and virtual staging updates draft",async({page})=>{
+ await page.goto("/");
+ await page.getByRole("button",{name:"Explorar demostración"}).click();
+ await page.getByRole("navigation").getByRole("button",{name:"Excepciones",exact:true}).click();
+ await page.locator(".post-row").first().click();
+ const dialog=page.getByRole("dialog",{name:"Detalle de publicación"});
+ await dialog.getByRole("button",{name:"Seleccionar y ordenar medios"}).click();
+ await dialog.getByRole("button",{name:"Añadir Simulación 1"}).click();
+ await expect(dialog.getByRole("button",{name:"Guardar selección"})).toBeDisabled();
+ await dialog.getByRole("button",{name:"Añadir Simulación 2"}).click();
+ await dialog.getByRole("button",{name:"Subir 2"}).click();
+ await expect(dialog.locator(".media-order li").first()).toContainText("Simulación 2");
+ await page.screenshot({path:"test-results/previews/09-media-selection.png",fullPage:true});
+ await dialog.getByRole("button",{name:"Guardar selección"}).click();
+ await dialog.getByRole("button",{name:"Preparar copies"}).click();
+ await expect(dialog.locator(".draft-variant").first()).toContainText("Some images include virtual staging.");
+ await expect(dialog.getByRole("button",{name:"Descargar medios"})).toBeDisabled();
+});
