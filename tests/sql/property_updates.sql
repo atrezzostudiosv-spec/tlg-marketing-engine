@@ -8,10 +8,10 @@ insert into public.workspace_members values
 insert into public.properties(workspace_id,id,address,locality,transaction_type,status) values
  ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000011','Synthetic A','Demo','SALE','ACTIVE'),
  ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021','Synthetic B','Demo','SALE','ACTIVE');
-insert into public.sources(workspace_id,id,type,reference,obtained_at,authorization_status) values
- ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000012','demo','demo',now(),'APPROVED'),
- ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000022','demo','demo',now(),'APPROVED'),
- ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000013','demo','demo',now(),'DENIED');
+insert into public.sources(workspace_id,id,property_id,type,reference,obtained_at,authorization_status) values
+ ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000011','demo','demo',now(),'APPROVED'),
+ ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000022','00000000-0000-4000-8000-000000000021','demo','demo',now(),'APPROVED'),
+ ('00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000013','00000000-0000-4000-8000-000000000011','demo','demo',now(),'DENIED');
 insert into public.posts(workspace_id,property_id,id,planned_at,format,property_revision,workflow_state,editorial_state)
  select '00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000011',
  ('00000000-0000-4000-8000-0000000000'||n)::uuid,now(),'photo',1,state,'LISTO'
