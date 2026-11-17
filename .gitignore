@@ -8,3 +8,5 @@ coverage/
 .DS_Store
 private/
 supabase/.temp/
+test-results/
+playwright-report/

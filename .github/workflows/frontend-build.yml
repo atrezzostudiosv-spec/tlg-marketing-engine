@@ -10,7 +10,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,10 +19,21 @@ jobs:
         with:
           node-version: '22'
       - run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Capture generated public dependency lock
+        run: node -e 'const s=JSON.stringify(require("./package-lock.json")); for(let i=0;i<s.length;i+=800)console.log("TLG_LOCK_"+String(i/800).padStart(4,"0")+" "+s.slice(i,i+800))'
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
       - uses: actions/upload-artifact@v4
         with:
           name: tlg-demo-build
           path: dist/
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tlg-interface-previews
+          path: test-results/previews/
+          if-no-files-found: ignore
+          retention-days: 14
