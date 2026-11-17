@@ -1,22 +1,24 @@
 # Fase 02 — Base técnica y primera interfaz (en curso)
 
-## Verificado previamente
+## Verificado en GitHub
 
-19 pruebas de dominio y servidor (run 44072450285) y migraciones/aislamiento en PostgreSQL desechable (run 44072450503). El fallo inicial por identificador SQL reservado fue corregido. No equivale a verificación de servicios Supabase reales.
+- 24 pruebas de dominio, servidor y calendario, compilación TypeScript/Vite y dos pruebas Chromium de navegación y responsive: run 44075571873.
+- Migraciones e aislamiento en PostgreSQL desechable: run 44075419647. El fallo inicial por identificador SQL reservado se corrigió.
+- Capturas de escritorio y móvil y build demo disponibles en artefactos de Frontend build. No equivalen a una auditoría visual humana o una aplicación privada desplegada.
+- Lockfile generado por npm en CI e incorporado a Git; siguientes builds usan npm ci.
 
-## Incorporado
+## Implementado
 
-- React/TypeScript/Vite y SDK Supabase, con versiones directas fijadas; lockfile pendiente.
-- Autenticación por correo y contraseña con sesión en memoria, sin registro público en la UI. Solo se acepta clave publicable sb_publishable_ en frontend. El servicio Supabase debe desactivar altas públicas y asignar membresías manualmente antes del piloto.
-- Lectura explícita por workspace, protegida por RLS; sin escrituras ni exportación desde la UI. No cargar datos parciales cuando se alcanza el límite de consultas.
-- Esqueleto visual monocromático: Hoy, calendario semanal navegable, propiedades, excepciones y detalle. Demo separada con datos ficticios, sin fotos ni copies reales, sin acceso a servicios. No se marca contenido como listo; estado LISTO exige revalidación y exportación permanece desactivada.
-- Pruebas de fechas civiles de Texas y navegación semanal; CI de compilación y artefacto estático de demo. La compilación y nuevas pruebas quedan pendientes de resultado en Actions.
+- React/TypeScript/Vite, SDK Supabase y autenticación por correo y contraseña con sesión en memoria, sin registro público en la UI. Solo se acepta clave publicable sb_publishable_ en frontend.
+- Lectura por workspace, protegida por RLS; sin escrituras o exportación desde UI. No se muestran resultados parciales si se alcanza el límite de consultas.
+- Esqueleto visual: Hoy, calendario semanal navegable, propiedades, excepciones y detalle. Demo ficticia sin fotos o copies reales; exportación desactivada hasta implementar revalidación completa.
+- RPC transaccional de confirmación de estado y precio, bloqueo de pendientes, alertas de programación externa y auditoría. No modifica Meta.
 
 ## Pendientes
 
-1. Verificar nueva compilación y pruebas; fijar lockfile y revisar dependencias.
-2. Provisionar Supabase de desarrollo, aplicar migraciones y probar Auth, PostgREST y Storage reales. Crear usuario y workspace de prueba; desactivar registro público.
-3. Completar CRUD y mutaciones autorizadas, control de fuentes, firma de medios, resolución de alertas y Quality Gate.
-4. Auditoría visual y accesibilidad; calendario de 14 días, generación y paquetes completos en fases posteriores.
+1. Provisionar Supabase de desarrollo y probar Auth, PostgREST y Storage reales. Desactivar registro público en el servicio y asignar membresías autorizadas.
+2. Completar CRUD, confirmación de otros hechos, firma de medios, control de fuentes, resolución de alertas y Quality Gate.
+3. Auditoría visual y accesibilidad; planificación de 14 días, generación y paquetes completos en fases posteriores.
+4. Confirmar repositorio privado y desplegar aplicación protegida antes de cargar datos reales.
 
-No se ha conectado Supabase ni desplegado una aplicación privada. El repositorio sigue público: no cargar datos reales, medios o secretos.
+No hay conexión real a Supabase ni entorno privado desplegado. El repositorio sigue público. La fase continúa abierta.

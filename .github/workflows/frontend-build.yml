@@ -18,9 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
-      - name: Capture generated public dependency lock
-        run: node -e 'const s=JSON.stringify(require("./package-lock.json")); for(let i=0;i<s.length;i+=800)console.log("TLG_LOCK_"+String(i/800).padStart(4,"0")+" "+s.slice(i,i+800))'
+      - run: npm ci
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
