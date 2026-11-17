@@ -1,0 +1,37 @@
+name: Database regression tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: tlg
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tlg"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Apply migrations and assert isolation
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          for file in tests/sql/bootstrap.sql supabase/migrations/*.sql tests/sql/property_updates.sql; do
+            echo "Running $file"
+            docker exec -i "$PG_CONTAINER" psql -U postgres -d tlg -v ON_ERROR_STOP=1 < "$file"
+          done

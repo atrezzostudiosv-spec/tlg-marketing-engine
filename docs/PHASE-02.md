@@ -2,26 +2,23 @@
 
 ## Implementado en Git
 
-- Contratos TypeScript, vigencia de hechos y revisión de propiedades.
-- Validación preliminar de fuentes autorizadas, asociación de hechos y medios, derechos, identificación de staging y presencia del formato final.
-- Proyección pura de invalidación de paquetes: bloquea pendientes, cancela pendientes de propiedades inactivas y conserva programaciones externas para que el operador las corrija; no modifica Meta.
-- Migraciones SQL: esquema inicial, RLS de lectura, revocación explícita de escrituras de cliente, integridad de estrategia y hechos por propiedad, definición de bucket privado con acceso directo denegado.
-- Configuración de secretos de ejemplo y exclusión de archivos privados.
+- Contratos TypeScript, vigencia, revisión, fuentes, derechos y formatos; no equivalen al Quality Gate completo.
+- Migraciones iniciales de esquema, aislamiento, integridad por propiedad y bucket privado.
+- Actualización transaccional de precio y estado mediante RPC restringida a service_role. Identidad verificada en servidor, rol comprobado en SQL, revisión optimista, fuente autorizada, registro de auditoría, invalidación persistente y alertas para programaciones externas.
+- Confirmar nuevamente un dato idéntico no cambia la revisión ni invalida publicaciones. Cambiar un dato bloquea pendientes; retirar una propiedad cancela pendientes, sin modificar Meta ni publicaciones históricas.
+- Adaptador HTTP para Cloudflare Pages Functions, sin credenciales en cliente. Solo soporta precio y estado en esta etapa; no es CRUD completo ni integración desplegada.
+- CI de dominio y CI de PostgreSQL desechable con fixtures sintéticos. La emulación de esquemas auth/storage no sustituye las pruebas de Supabase real.
 
-## Verificación realizada
+## Verificación
 
-13 pruebas de dominio pasaron en Node 22.16.0 con --experimental-strip-types, sobre copias de código verificadas por SHA Git (los archivos nuevos se comprueban al subir). TypeScript estricto también pasó mediante tsc --noEmit --strict --allowImportingTsExtensions --module nodenext --target es2022 src/domain/*.ts.
+13 pruebas anteriores pasaron en GitHub Actions (run 44070639287). Nuevas pruebas de servidor y SQL incorporadas; comprobar sus ejecuciones en el historial de Actions. No afirmar que pasaron hasta observar resultado.
 
-Estas pruebas no prueban una base de datos ni servicios externos. No prueban la veracidad de texto generado, disponibilidad real de medios o cumplimiento normativo. La validación de entradas no establece el estado LISTO.
+## Pendientes
 
-## Decisiones y pendientes
+- Verificar nuevas ejecuciones de CI y corregir fallos.
+- Provisionar Supabase de desarrollo, aplicar migraciones y probar Auth, PostgREST y Storage reales.
+- Completar CRUD, confirmación de otros hechos, políticas de exportación y firma de medios, verificación de existencia, control de cambios de fuentes, resolución de alertas y Quality Gate.
+- Incorporar frontend React/TypeScript, autenticación, build y despliegue privado.
+- Repositorio todavía público: no cargar datos operativos, medios ni secretos.
 
-Node >=22.18 es el objetivo de ejecución del repositorio. El frontend React/TypeScript y sus dependencias aún no se han incorporado. Las escrituras y descargas deben pasar por backend autorizado, con verificación de identidad y rol.
-
-- Aplicar migraciones en un proyecto Supabase de desarrollo y probar aislamiento de dos usuarios/workspaces, referencias cruzadas y denegación de acceso a medios.
-- Implementar backend de mutación, revisión transaccional, auditoría, invalidación persistente y alertas; la función actual de invalidación es pura y no se ejecuta automáticamente.
-- Implementar validación de existencia del objeto, firma temporal y autorización al exportar.
-- Configurar CI, frontend, autenticación y build.
-- Confirmar repositorio privado antes de cualquier información real.
-
-No se han provisionado servicios externos ni aplicado migraciones. No hay datos reales ni aplicación desplegada. La fase continúa abierta.
+No se ha desplegado la aplicación ni conectado una base de datos externa. La fase continúa abierta.
